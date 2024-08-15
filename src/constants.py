@@ -15,7 +15,7 @@ servers = {
     "건국": "https://sugang.konkuk.ac.kr/",
     "가천": "https://sg.gachon.ac.kr/",
     "단국": "https://sugang.dankook.ac.kr/",
-    "덕성": "https://sugang.duksung.ac.kr/sugang/lecture",
+    "덕성": "https://sugang.duksung.ac.kr/sugang/lecture/",
     "성신": "https://sugang.sungshin.ac.kr/",
     "홍익": "https://sugang.hongik.ac.kr/"
 }

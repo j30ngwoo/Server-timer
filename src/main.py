@@ -23,7 +23,7 @@ def validate_url(url):
         return False
     try:
         result = requests.head(url, allow_redirects=True)
-        return result.status_code == 200
+        return result.status_code == 200 or result.status_code == 405
     except requests.exceptions.RequestException:
         return False
 
