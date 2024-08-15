@@ -1,8 +1,15 @@
 import requests
 import time
-import random
+import math
 import urllib3
 from datetime import datetime, timedelta
+from constants import (
+    SYNC_ATTEMPTS,
+    MAX_DELAY,
+    MIN_DELAY,
+    VALIDATION_THRESHOLD,
+    VALIDATION_ATTEMPTS
+)
 
 # SSL 경고 무시
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -19,39 +26,95 @@ def get_server_time(url):
     return server_epoch
 
 def sync_with_server_minimal_error(url, attempts=20, min_delay=0.05, max_delay=0.15, update_label=None):
-    best_offset = None
-    smallest_error = float('inf')
+    largest_offset = -float('inf')
     last_second = None
+    delay = max_delay
 
     for current_attempt in range(attempts):
-        start_local = time.time()
+        local_time = time.time()
         server_time = get_server_time(url)
-        end_local = time.time()
-
-        # 왕복 시간 계산 및 지연 보정
-        round_trip_time = (end_local - start_local) / 2
-        adjusted_server_time = server_time + round_trip_time
-        local_time = (start_local + end_local) / 2
-
-        # 로컬 시간과 조정된 서버 시간 간의 오프셋 계산
-        offset = adjusted_server_time - local_time
+        offset = server_time - local_time
 
         # 초가 변경되었는지 확인하고 오차 계산
         current_second = int(server_time) % 60
         if last_second is not None and current_second != last_second:
-            error = abs(adjusted_server_time % 1)  # closer to .000 is better
-            if error < smallest_error:
-                smallest_error = error
-                best_offset = offset
+            print(f"[DEBUG] 시도 {current_attempt + 1}/{attempts}")
+            print(f"[DEBUG] 로컬 시간: {local_time}, 서버 시간: {server_time}, 오프셋: {offset}")
+            print(f"[DEBUG] 오차 계산: 현재 초: {current_second}, 이전 초: {last_second}")
+            
+            if largest_offset < offset:
+                largest_offset = offset
+                print(f"[DEBUG] 새로운 최적 오프셋 발견: {largest_offset}")
+            time.sleep(0.8)
 
         last_second = current_second
 
         # 시도 중... 라벨 업데이트
         if update_label:
-            update_label(f"시도 중... {current_attempt + 1}/{attempts}")
+            update_label(f"동기화 중... {current_attempt + 1}/{attempts}")
 
-        # 최소 및 최대 딜레이 사이의 랜덤 지연 사용
-        delay = random.uniform(min_delay, max_delay)
+        # 지수적으로 줄어드는 딜레이 계산
+        delay = min_delay + (max_delay - min_delay) * math.exp(-3 * current_attempt / (attempts - 1))
+        print(f"[DEBUG] 계산된 딜레이: {delay}초 (시도 {current_attempt + 1}/{attempts})")
+        print("---------------------")
         time.sleep(delay)
 
-    return best_offset if best_offset is not None else offset
+    # 결과 로그
+    print(f"[DEBUG] 최종 최적 오프셋: {largest_offset}")
+
+    return largest_offset if largest_offset != -float('inf') else offset
+
+def validate_best_offset(url, best_offset, threshold):
+    # 첫 번째 검증: 측정한 시간이 XX.VALIDATION_THRESHOLD초일 때 전송, 응답이 XX초인지 확인
+    while True:
+        current_time = time.time() + best_offset
+        if 1 - threshold <= (current_time % 1) <= (1 - threshold) + 0.002:
+            break
+        time.sleep(0.001)
+
+    # 첫 번째 전송 시점의 초 및 밀리초 값 저장
+    first_send_time = time.time()
+    first_server_time = get_server_time(url)
+
+    first_expected_second = int(first_send_time + best_offset) % 60
+    first_expected_millisecond = int(((first_send_time + best_offset) % 1) * 1000)
+    print(f"[DEBUG] 첫 번째 전송 시점: {first_expected_second}.{first_expected_millisecond:03d}초")
+
+    first_server_second = int(first_server_time) % 60
+    print(f"[DEBUG] 첫 번째 응답 시간: {first_server_second}초")
+
+    # 첫 번째 검증 결과
+    first_check = first_server_second == first_expected_second
+
+    # 두 번째 검증: XX.00초 직후에 전송, 응답이 xx초인지 확인
+    while True:
+        current_time = time.time() + best_offset
+        if 0.00 <= (current_time % 1) <= 0.005:
+            break
+        time.sleep(0.001)
+
+    # 두 번째 전송 시점의 초 및 밀리초 값 저장
+    second_send_time = time.time()
+    second_server_time = get_server_time(url)
+    second_expected_second = int(second_send_time + best_offset) % 60
+    second_expected_millisecond = int(((second_send_time + best_offset) % 1) * 1000)
+    print(f"[DEBUG] 두 번째 전송 시점: {second_expected_second}.{second_expected_millisecond:03d}초")
+
+    # 서버 시간 가져오기 (RTT를 고려하지 않음)
+    second_server_second = int(second_server_time) % 60
+    print(f"[DEBUG] 두 번째 응답 시간: {second_server_second}초")
+
+    # 두 번째 검증 결과
+    second_check = second_server_second == second_expected_second
+
+    return first_check and second_check
+
+
+def sync_with_server_and_validate(url, attempts, min_delay, max_delay, threshold, validation_attempts, update_label=None):
+    best_offset = sync_with_server_minimal_error(url, attempts, min_delay, max_delay, update_label)
+    for valid_trial in range(1, validation_attempts + 1):
+        update_label(f"검증 중...({valid_trial}/{validation_attempts})", "orange")
+        if not validate_best_offset(url, best_offset, threshold):
+            update_label("오차 발견: 재시도하세요", "red")
+            return None
+    return best_offset
