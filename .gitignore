@@ -1,2 +1,4 @@
 main.spec
 build/
+__pycache__/
+*.pyc
