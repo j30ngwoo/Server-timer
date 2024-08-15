@@ -45,7 +45,7 @@ def sync_with_server_minimal_error(url, attempts=20, min_delay=0.05, max_delay=0
             if largest_offset < offset:
                 largest_offset = offset
                 print(f"[DEBUG] 새로운 최적 오프셋 발견: {largest_offset}")
-            time.sleep(0.8)
+            time.sleep(0.9)
 
         last_second = current_second
 

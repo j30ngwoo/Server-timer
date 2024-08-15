@@ -35,10 +35,7 @@ def select_server(server_url=None):
 
 def start_sync():
     global time_offset, attempts, min_delay, max_delay, update_time_label_id, threshold, validation_attempts
-
-    if not validate_url(selected_url):
-        url_label.config(text="유효하지 않은 URL입니다. 다시 시도하세요.", foreground="red")
-        return  # URL이 유효하지 않으면 동기화 시작 중단
+    start_button.config(state=tk.DISABLED)
 
     # 입력값 검증
     try:
@@ -48,6 +45,8 @@ def start_sync():
         threshold = float(threshold_entry.get())
         validation_attempts = int(validation_attempts_entry.get())
 
+        if not validate_url(selected_url):
+            raise ValueError("유효하지 않은 URL입니다.")
         if attempts <= 1:
             raise ValueError("요청 횟수는 1보다 커야 합니다.")
         if min_delay > max_delay:
@@ -58,6 +57,7 @@ def start_sync():
             raise ValueError("검증할 최소 오차는 0 초과 1 미만이어야 합니다.")
     except ValueError as e:
         url_label.config(text=str(e), foreground="red")
+        start_button.config(state=tk.NORMAL)
         return  # 입력값이 유효하지 않으면 동기화 시작 중단
 
     # 기존 타이머 업데이트 중지
@@ -65,17 +65,11 @@ def start_sync():
         root.after_cancel(update_time_label_id)
         update_time_label_id = None
 
-    if selected_url:
-        # 동기화 버튼 비활성화
-        start_button.config(state=tk.DISABLED)
-
-        # 현재 시도 횟수 표시
-        time_label.config(text=f"동기화 중... 0/{attempts}")
-        
-        # 동기화 시도 실행
-        threading.Thread(target=execute_sync).start()
-    else:
-        url_label.config(text="먼저 URL을 선택하세요.")  # URL이 선택되지 않은 경우 메시지 표시
+    # 현재 시도 횟수 표시
+    time_label.config(text=f"동기화 중... 0/{attempts}")
+    
+    # 동기화 시도 실행
+    threading.Thread(target=execute_sync).start()
 
 def execute_sync():
     global time_offset
