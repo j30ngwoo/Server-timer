@@ -5,7 +5,7 @@
 ## 사용 방법
 
 0. 오른쪽 위 Code 버튼 -> Download Zip
-1. `main.py` 혹은 `main.exe` 실행
+1. `main.py` 혹은 `server_timer.exe` 실행
 2. URL 선택 혹은 직접 입력 (직접 입력 시 입력 후 버튼 클릭)
 3. 동기화 시작 버튼 클릭
 
