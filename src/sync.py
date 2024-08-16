@@ -3,6 +3,7 @@ import time
 import math
 import urllib3
 from datetime import datetime, timedelta
+import statistics
 from constants import (
     SYNC_ATTEMPTS,
     MAX_DELAY,
@@ -41,11 +42,12 @@ def sync_with_server_minimal_error(url, attempts=20, min_delay=0.05, max_delay=0
             print(f"[DEBUG] 시도 {current_attempt + 1}/{attempts}")
             print(f"[DEBUG] 로컬 시간: {local_time}, 서버 시간: {server_time}, 오프셋: {offset}")
             print(f"[DEBUG] 오차 계산: 현재 초: {current_second}, 이전 초: {last_second}")
-            
+            delay = min_delay
             if largest_offset < offset:
                 largest_offset = offset
                 print(f"[DEBUG] 새로운 최적 오프셋 발견: {largest_offset}")
-            time.sleep(0.8)
+
+            time.sleep(0.7)
 
         last_second = current_second
 
@@ -54,21 +56,22 @@ def sync_with_server_minimal_error(url, attempts=20, min_delay=0.05, max_delay=0
             update_label(f"동기화 중... {current_attempt + 1}/{attempts}")
 
         # 지수적으로 줄어드는 딜레이 계산
-        delay = min_delay + (max_delay - min_delay) * math.exp(-3 * current_attempt / (attempts - 1))
+        # delay = min_delay + (max_delay - min_delay) * math.exp(-3 * current_attempt / (attempts - 1))
         print(f"[DEBUG] 계산된 딜레이: {delay}초 (시도 {current_attempt + 1}/{attempts})")
         print("---------------------")
         time.sleep(delay)
 
     # 결과 로그
     print(f"[DEBUG] 최종 최적 오프셋: {largest_offset}")
-
     return largest_offset if largest_offset != -float('inf') else offset
 
 def validate_best_offset(url, best_offset, threshold):
     # 첫 번째 검증: 측정한 시간이 XX.VALIDATION_THRESHOLD초일 때 전송, 응답이 XX초인지 확인
+    last_second = int(time.time() + best_offset) % 60  # 이전 초값 저장
     while True:
         current_time = time.time() + best_offset
-        if 1 - threshold <= (current_time % 1) <= (1 - threshold) + 0.002:
+        current_second = int(current_time) % 60  # 현재 초값 계산
+        if current_second != last_second and current_time % 1 >= 1 - threshold:
             break
         time.sleep(0.001)
 
@@ -87,9 +90,11 @@ def validate_best_offset(url, best_offset, threshold):
     first_check = first_server_second == first_expected_second
 
     # 두 번째 검증: XX.00초 직후에 전송, 응답이 xx초인지 확인
+    last_second = int(time.time() + best_offset) % 60  # 이전 초값 저장
     while True:
         current_time = time.time() + best_offset
-        if 0.00 <= (current_time % 1) <= 0.005:
+        current_second = int(current_time) % 60  # 현재 초값 계산
+        if current_second != last_second and current_time % 1 >= 0.000:
             break
         time.sleep(0.001)
 
