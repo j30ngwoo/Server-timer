@@ -57,7 +57,7 @@ def sync_with_server_minimal_error(url, attempts=20, min_delay=0.05, max_delay=0
 
         # 지수적으로 줄어드는 딜레이 계산
         # delay = min_delay + (max_delay - min_delay) * math.exp(-3 * current_attempt / (attempts - 1))
-        print(f"[DEBUG] 계산된 딜레이: {delay}초 (시도 {current_attempt + 1}/{attempts})")
+        print(f"[DEBUG] 다음 요청 딜레이: {delay}초 (시도 {current_attempt + 1}/{attempts})")
         print("---------------------")
         time.sleep(delay)
 
@@ -65,7 +65,7 @@ def sync_with_server_minimal_error(url, attempts=20, min_delay=0.05, max_delay=0
     print(f"[DEBUG] 최종 최적 오프셋: {largest_offset}")
     return largest_offset if largest_offset != -float('inf') else offset
 
-def validate_best_offset(url, best_offset, threshold):
+def validate_best_offset(url, best_offset, threshold, update_label):
     # 첫 번째 검증: 측정한 시간이 XX.VALIDATION_THRESHOLD초일 때 전송, 응답이 XX초인지 확인
     last_second = int(time.time() + best_offset) % 60  # 이전 초값 저장
     while True:
@@ -85,9 +85,11 @@ def validate_best_offset(url, best_offset, threshold):
 
     first_server_second = int(first_server_time) % 60
     print(f"[DEBUG] 첫 번째 응답 시간: {first_server_second}초")
-
     # 첫 번째 검증 결과
     first_check = first_server_second == first_expected_second
+
+    update_label(f"요청: {first_expected_second}.{first_expected_millisecond:03d} -> 응답: {first_server_second}", "green" if first_check else "red")
+    time.sleep(0.5)
 
     # 두 번째 검증: XX.00초 직후에 전송, 응답이 xx초인지 확인
     last_second = int(time.time() + best_offset) % 60  # 이전 초값 저장
@@ -112,6 +114,10 @@ def validate_best_offset(url, best_offset, threshold):
     # 두 번째 검증 결과
     second_check = second_server_second == second_expected_second
 
+    update_label(f"요청: {second_expected_second}.{second_expected_millisecond:03d} -> 응답: {second_server_second}", "green" if second_check else "red")
+    time.sleep(0.5)
+    
+    
     return first_check and second_check
 
 
@@ -119,7 +125,7 @@ def sync_with_server_and_validate(url, attempts, min_delay, max_delay, threshold
     best_offset = sync_with_server_minimal_error(url, attempts, min_delay, max_delay, update_label)
     for valid_trial in range(1, validation_attempts + 1):
         update_label(f"검증 중...({valid_trial}/{validation_attempts})", "orange")
-        if not validate_best_offset(url, best_offset, threshold):
-            update_label("오차 발견: 재시도하세요", "red")
+        if not validate_best_offset(url, best_offset, threshold, update_label):
+            update_label("검증 실패: 잠시 후 재시도하세요", "red")
             return None
     return best_offset
