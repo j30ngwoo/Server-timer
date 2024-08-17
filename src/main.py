@@ -19,7 +19,7 @@ from ui import (
 
 def validate_url(url):
     # 간단한 URL 유효성 검사
-    if not url or not url.startswith(('http://', 'https://')):
+    if not url:
         return False
     try:
         result = requests.head(url, allow_redirects=True)
@@ -31,6 +31,8 @@ def select_server(server_url=None):
     global selected_url
     if server_url or url_entry.get():
         selected_url = server_url if server_url else url_entry.get()
+        if not selected_url.startswith(('http://', 'https://')):
+            selected_url = 'https://' + selected_url
         url_label.config(text=selected_url, foreground="black")  # 선택된 URL을 검은색으로 표시
 
 def start_sync():
