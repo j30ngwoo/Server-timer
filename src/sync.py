@@ -1,16 +1,7 @@
 import requests
 import time
-import math
 import urllib3
 from datetime import datetime, timedelta
-import statistics
-from constants import (
-    SYNC_ATTEMPTS,
-    MAX_DELAY,
-    MIN_DELAY,
-    VALIDATION_THRESHOLD,
-    VALIDATION_ATTEMPTS
-)
 
 # SSL 경고 무시
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
