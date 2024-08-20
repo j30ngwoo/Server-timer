@@ -5,7 +5,7 @@ SYNC_ATTEMPTS = 25
 MIN_DELAY = 0.001
 MAX_DELAY = 0.1
 
-# 검증 시 사용할 최소 요구 오차 (초)
+# 검증 시 사용할 최대 요구 오차 (초)
 VALIDATION_THRESHOLD = 0.1
 
 # 검증 횟수

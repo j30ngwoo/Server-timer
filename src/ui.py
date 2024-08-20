@@ -116,7 +116,7 @@ def setup_validation_controls(root):
     validation_frame = ttk.Frame(root)
     validation_frame.grid(row=9, column=0, columnspan=3, pady=10)  # 3칸 차지
 
-    threshold_label = ttk.Label(validation_frame, text="검증할 최소 오차(s):")
+    threshold_label = ttk.Label(validation_frame, text="검증할 최대 오차(s):")
     threshold_label.grid(row=0, column=0, sticky="e")
     threshold_entry = ttk.Entry(validation_frame, width=10)
     threshold_entry.insert(0, VALIDATION_THRESHOLD)

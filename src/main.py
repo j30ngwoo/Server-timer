@@ -56,7 +56,7 @@ def start_sync():
         if validation_attempts <= 0:
             raise ValueError("검증 횟수는 0보다 커야 합니다.")
         if not (0 < threshold < 1):
-            raise ValueError("검증할 최소 오차는 0 초과 1 미만이어야 합니다.")
+            raise ValueError("검증할 최대 오차는 0 초과 1 미만이어야 합니다.")
     except ValueError as e:
         url_label.config(text=str(e), foreground="red")
         start_button.config(state=tk.NORMAL)
