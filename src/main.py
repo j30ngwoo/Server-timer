@@ -1,9 +1,13 @@
 import tkinter as tk
+from tkinter import font
 import time
 import requests
 import threading
-from constants import servers
+import urllib3
+import re
+from constants import servers, FONT_NAME
 from sync import synchronize_and_verify
+from urllib.parse import urlparse
 from ui import (
     initialize_main_window, 
     setup_server_url_label, 
@@ -17,30 +21,69 @@ from ui import (
     setup_footer
 )
 
+# SSL 경고 무시
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+selected_url = None
+
 def is_valid_url(url, timeout=3):
     """URL 유효성 검사"""
-    if not url:
+
+    if not url or url is None:
         return False
+    
+    url_pattern = re.compile(
+        r'^(https?:\/\/)?'  # http:// 또는 https://
+        r'([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}'  # 도메인 이름
+        r'(\/.*)?$'  # 경로 (선택 사항)
+    )
+
+    if not url_pattern.match(url):
+        print(f"[DEBUG] 잘못된 URL 형식: {url}")
+        return False
+
     try:
-        result = requests.head(url, allow_redirects=True, timeout=timeout)
-        return result.status_code in [200, 301, 302, 405]
+        result = requests.head(url, allow_redirects=True, timeout=timeout, verify=False)
+        print(f"[DEBUG] Status code: {result.status_code}")
+        return True
+    except requests.exceptions.SSLError as ssl_err:
+        print(f"[DEBUG] SSL 오류 발생: {ssl_err}")
+        return False
     except requests.exceptions.RequestException as e:
         print(f"[DEBUG] URL validation error: {e}")
         return False
+    except Exception as e:
+        print(f"[DEBUG] 예상치 못한 오류 발생: {e}")
+        return False
 
-def set_selected_server(server_url=None):
+
+def shorten_url_by_pixel(url, max_pixels=350):
+    """URL을 지정된 픽셀 길이에 맞춰 뒷부분을 없애고 축약"""
+    label_font = font.Font(family=FONT_NAME, size=12)
+    ellipsis_width = label_font.measure("...")
+    if label_font.measure(url) <= max_pixels:
+        return url
+    while label_font.measure(url) + ellipsis_width > max_pixels:
+        url = url[:-1]
+    return url + "..."
+
+def set_selected_server(server_url=None, max_len=30):
     """선택된 서버의 URL을 설정"""
     global selected_url
-    if server_url or url_entry.get():
-        selected_url = server_url if server_url else url_entry.get()
-        if not selected_url.startswith(('http://', 'https://')):
-            selected_url = 'https://' + selected_url
-        url_label.config(text=selected_url, foreground="black")  # 선택된 URL을 검은색으로 표시
+    selected_url = server_url if server_url else url_entry.get()
+    if not selected_url.startswith(('http://', 'https://')):
+        selected_url = 'https://' + selected_url
+    shortened_url = shorten_url_by_pixel(selected_url)
+    url_label.config(text=shortened_url, foreground="black")
 
 def initiate_sync_process():
     """입력값을 검증하고 동기화 스레드를 시작"""
-    global time_offset, attempts, min_delay, max_delay, update_time_label_id, threshold, validation_attempts
+    global selected_url, time_offset, attempts, min_delay, max_delay, update_time_label_id, threshold, validation_attempts
+    
+    # 버튼 비활성화
     start_button.config(state=tk.DISABLED)
+
+    # TODO: 작동 중 모든 버튼 비활성화 하기
 
     # 입력값 검증
     try:
@@ -60,10 +103,24 @@ def initiate_sync_process():
             raise ValueError("검증 횟수는 0보다 커야 함.")
         if not (0 < threshold < 1):
             raise ValueError("검증할 최대 오차는 0 초과 1 미만이어야 함.")
+        
+        # 만약 도메인만 사용이 가능하다면, Full URL 대신 도메인만 사용
+        parsed_url = urlparse(selected_url)
+        domain = f'{parsed_url.scheme}://{parsed_url.netloc}'
+        if is_valid_url(domain):
+            selected_url = domain
+            print(f"[DEBUG] 전체 URL 대신 도메인만 사용 가능: {domain}")
+
     except ValueError as e:
         url_label.config(text=str(e), foreground="red")
+        print(f"[DEBUG] initiate_sync_process: {e}")
         start_button.config(state=tk.NORMAL)
         return  # 입력값이 유효하지 않으면 동기화 시작 중단
+    except Exception as e:
+        url_label.config(text=f"예상치 못한 오류 발생", foreground="red")
+        print(f"[DEBUG] 예상치 못한 오류 발생: {e}")
+        start_button.config(state=tk.NORMAL)
+        return
 
     # 기존 타이머 업데이트 중지
     if update_time_label_id is not None:
@@ -139,3 +196,4 @@ footer_label = setup_footer(root)
 
 # GUI 루프 시작
 root.mainloop()
+

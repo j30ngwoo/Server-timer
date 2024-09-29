@@ -1,10 +1,6 @@
 import requests
 import time
-import urllib3
 from datetime import datetime, timedelta
-
-# SSL 경고 무시
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_server_time(url):
     response = requests.head(url, verify=False)  # SSL 검증 비활성화
@@ -17,20 +13,22 @@ def get_server_time(url):
     server_epoch = server_time_kst.timestamp()
     return server_epoch
 
-def find_best_sync_offset(url, attempts=20, min_delay=0.05, max_delay=0.15, update_label=None):
+def find_best_sync_offset(url, attempts, min_delay, max_delay, update_label):
     largest_offset = -float('inf')
-    last_second = None
+    last_second = get_server_time(url) % 60
     delay = max_delay
 
     for current_attempt in range(attempts):
         local_time = time.time()
         server_time = get_server_time(url)
+        print(f"[DEBUG] 시도: {current_attempt + 1}/{attempts}")
+        print(f"[DEBUG] 서버 Date: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(server_time)) + \
+                         ".%03d" % (int((server_time % 1) * 1000))}")
         offset = server_time - local_time
 
         # 초가 변경되었는지 확인하고 오차 계산
         current_second = int(server_time) % 60
-        if last_second is not None and current_second != last_second:
-            print(f"[DEBUG] 시도 {current_attempt + 1}/{attempts}")
+        if current_second != last_second:
             print(f"[DEBUG] 로컬 시간: {local_time}, 서버 시간: {server_time}, 오프셋: {offset}")
             print(f"[DEBUG] 오차 계산 - 현재 초: {current_second}, 이전 초: {last_second}")
             delay = min_delay
@@ -48,7 +46,7 @@ def find_best_sync_offset(url, attempts=20, min_delay=0.05, max_delay=0.15, upda
 
         # 지수적으로 줄어드는 딜레이 계산
         # delay = min_delay + (max_delay - min_delay) * math.exp(-3 * current_attempt / (attempts - 1))
-        print(f"[DEBUG] 다음 요청 딜레이: {delay}초 (시도 {current_attempt + 1}/{attempts})")
+        print(f"[DEBUG] 다음 요청 딜레이: {delay}초")
         print("---------------------")
         time.sleep(delay)
 
