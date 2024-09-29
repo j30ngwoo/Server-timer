@@ -1,7 +1,14 @@
 import webbrowser
 import tkinter as tk
 from tkinter import ttk
-from constants import SYNC_ATTEMPTS, MAX_DELAY, MIN_DELAY, VALIDATION_ATTEMPTS, VALIDATION_THRESHOLD
+from constants import (
+    SYNC_ATTEMPTS,
+    MAX_DELAY,
+    MIN_DELAY,
+    VALIDATION_ATTEMPTS,
+    VALIDATION_THRESHOLD,
+    FONT_NAME
+)
 
 def initialize_main_window():
     """메인 창을 생성하고 기본 설정을 적용하는 함수"""
@@ -13,9 +20,9 @@ def initialize_main_window():
 
     # ttk 스타일 적용
     style = ttk.Style()
-    style.configure("TButton", font=("Helvetica", 12), padding=10)
-    style.configure("TLabel", font=("Helvetica", 12))
-    style.configure("SelectedURL.TLabel", font=("Helvetica", 14, "bold"))
+    style.configure("TButton", font=(FONT_NAME, 12), padding=10)
+    style.configure("TLabel", font=(FONT_NAME, 12))
+    style.configure("SelectedURL.TLabel", font=(FONT_NAME, 14, "bold"))
 
     return root
 
@@ -88,7 +95,7 @@ def setup_sync_controls(root, start_sync):
 
 def setup_time_label(root):
     """타이머 레이블을 설정하는 함수"""
-    time_label = ttk.Label(root, text="", font=("Helvetica", 24))
+    time_label = ttk.Label(root, text="", font=(FONT_NAME, 24))
     time_label.grid(row=11, column=0, columnspan=4, pady=10)
     return time_label
 
@@ -103,7 +110,7 @@ def on_leave(event):
 
 def setup_footer(root):
     """하단에 클릭 가능한 푸터 레이블을 설정하는 함수"""
-    footer_label = ttk.Label(root, text="by J30ngwoo", font=("Helvetica", 10, "bold"), anchor="e", foreground="#4682B4", cursor="hand2")
+    footer_label = ttk.Label(root, text="by J30ngwoo", font=(FONT_NAME, 10, "bold"), anchor="e", foreground="#4682B4", cursor="hand2")
     footer_label.grid(row=12, column=2, sticky="e")
 
     # 레이블 클릭 시 링크 열기
