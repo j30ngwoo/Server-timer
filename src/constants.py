@@ -11,6 +11,9 @@ VALIDATION_THRESHOLD = 0.1
 # 검증 횟수
 VALIDATION_ATTEMPTS = 1
 
+# UI
+FONT_NAME = "Helvetica"
+
 servers = {
     "건국": "https://sugang.konkuk.ac.kr/",
     "가천": "https://sg.gachon.ac.kr/",
