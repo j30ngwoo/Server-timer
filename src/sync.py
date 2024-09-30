@@ -3,6 +3,8 @@ import time
 from datetime import datetime, timedelta
 
 def get_server_time(url):
+    """서버에 head 요청을 보내 서버 시간을 Epoch 시간으로 리턴하는 함수"""
+
     response = requests.head(url, verify=False)  # SSL 검증 비활성화
     server_date = response.headers['Date']
     # 서버 시간을 UTC로 파싱
@@ -14,6 +16,8 @@ def get_server_time(url):
     return server_epoch
 
 def find_best_sync_offset(url, attempts, min_delay, max_delay, update_label):
+    """로컬과 서버 시간의 offset을 찾아 리턴하는 함수."""
+    
     largest_offset = -float('inf')
     last_second = get_server_time(url) % 60
     delay = max_delay
@@ -52,11 +56,13 @@ def find_best_sync_offset(url, attempts, min_delay, max_delay, update_label):
 
     # 결과 로그
     print(f"[DEBUG] 최종 최적 오프셋: {largest_offset}")
-    return largest_offset if largest_offset != -float('inf') else offset
+    return largest_offset
 
 def verify_sync_accuracy(url, best_offset, threshold, update_label):
-    # 첫 번째 검증: 측정한 시간이 XX.VALIDATION_THRESHOLD초일 때 전송, 응답이 XX초인지 확인
-    last_second = int(time.time() + best_offset) % 60  # 이전 초값 저장
+    """측정한 offset에 맞춰 요청을 전송하여 offset이 유효한지 확인하는 함수"""
+
+    # 첫 번째 검증: (XX - VALIDATION_THRESHOLD)초 직후에 전송, 응답이 XX초인지 확인
+    last_second = int(time.time() + best_offset) % 60  # 이전 초값 저장d
     while True:
         current_time = time.time() + best_offset
         current_second = int(current_time) % 60  # 현재 초값 계산
@@ -67,20 +73,19 @@ def verify_sync_accuracy(url, best_offset, threshold, update_label):
     # 첫 번째 전송 시점의 초 및 밀리초 값 저장
     first_send_time = time.time()
     first_server_time = get_server_time(url)
-
     first_expected_second = int(first_send_time + best_offset) % 60
     first_expected_millisecond = int(((first_send_time + best_offset) % 1) * 1000)
     print(f"[DEBUG] 첫 번째 로컬 전송 시점: {first_expected_second}.{first_expected_millisecond:03d}초")
 
     first_server_second = int(first_server_time) % 60
     print(f"[DEBUG] 첫 번째 서버 응답 시간: {first_server_second}초")
+
     # 첫 번째 검증 결과
     first_check = first_server_second == first_expected_second
-
     update_label(f"요청: {first_expected_second}.{first_expected_millisecond:03d} -> 응답: {first_server_second}", "green" if first_check else "red")
     time.sleep(1)
 
-    # 두 번째 검증: XX.00초 직후에 전송, 응답이 xx초인지 확인
+    # 두 번째 검증: X.000초 직후에 전송, 응답이 X초인지 확인
     last_second = int(time.time() + best_offset) % 60  # 이전 초값 저장
     while True:
         current_time = time.time() + best_offset
@@ -96,7 +101,7 @@ def verify_sync_accuracy(url, best_offset, threshold, update_label):
     second_expected_millisecond = int(((second_send_time + best_offset) % 1) * 1000)
     print(f"[DEBUG] 두 번째 로컬 전송 시점: {second_expected_second}.{second_expected_millisecond:03d}초")
 
-    # 서버 시간 가져오기 (RTT를 고려하지 않음)
+    # 서버 시간 가져오기
     second_server_second = int(second_server_time) % 60
     print(f"[DEBUG] 두 번째 서버 응답 시간: {second_server_second}초")
 
@@ -105,16 +110,25 @@ def verify_sync_accuracy(url, best_offset, threshold, update_label):
 
     update_label(f"요청: {second_expected_second}.{second_expected_millisecond:03d} -> 응답: {second_server_second}", "green" if second_check else "red")
     time.sleep(1)
-    
-    
+
     return first_check and second_check
 
 
 def synchronize_and_verify(url, attempts, min_delay, max_delay, threshold, validation_attempts, update_label):
+    """최적 offset을 찾고 검증하는 함수"""
+    
     best_offset = find_best_sync_offset(url, attempts, min_delay, max_delay, update_label)
+    
+    # 동기화 불가능한 경우
+    if best_offset == -float('inf'):
+        print(f"[DEBUG] 동기화 불가능: offset이 갱신되지 않음")
+        update_label("동기화가 불가능한 서버입니다.", "red")
+        return None
+
     for valid_trial in range(1, validation_attempts + 1):
         update_label(f"검증 중...({valid_trial}/{validation_attempts})", "orange")
         if not verify_sync_accuracy(url, best_offset, threshold, update_label):
             update_label("검증 실패: 잠시 후 재시도하세요", "red")
             return None
+
     return best_offset
