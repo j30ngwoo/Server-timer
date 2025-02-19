@@ -6,7 +6,7 @@ import threading
 import urllib3
 import re
 from constants import servers, FONT_NAME
-from sync import synchronize_and_verify
+from sync import synchronize_and_verify, get_server_time
 from urllib.parse import urlparse
 from ui import (
     initialize_main_window, 
@@ -18,6 +18,8 @@ from ui import (
     setup_delay_frames,
     setup_validation_controls,
     setup_time_label,
+    setup_server_time_test_button,
+    setup_test_result_label, 
     setup_footer
 )
 
@@ -176,6 +178,21 @@ def refresh_time_display():
     else:
         update_time_label_id = None
 
+def server_time_test():
+    """테스트 버튼 클릭 시 호출되는 함수: 서버 시간의 초 부분을 테스트 결과 레이블에 표시"""
+    def fetch_time():
+        url = selected_url if selected_url else url_entry.get()
+        if not url:
+            root.after(0, lambda: test_result_label.config(text="URL을 선택하세요", foreground="red"))
+            return
+        if not url.startswith("http"):
+            url = "https://" + url
+        try:
+            server_time = get_server_time(url)
+            root.after(0, lambda: test_result_label.config(text=f"{time.strftime("%H:%M:%S", time.localtime(server_time))}.XXX", foreground="black"))
+        except Exception as e:
+            root.after(0, lambda: test_result_label.config(text=f"오류: {str(e)}", foreground="red"))
+    threading.Thread(target=fetch_time).start()
 
 # 초기 설정
 selected_url = None
@@ -192,6 +209,8 @@ min_delay_entry, max_delay_entry = setup_delay_frames(root)
 threshold_entry, validation_attempts_entry = setup_validation_controls(root)
 start_button = setup_sync_controls(root, initiate_sync_process)
 time_label = setup_time_label(root)
+test_button = setup_server_time_test_button(root, server_time_test)
+test_result_label = setup_test_result_label(root)
 footer_label = setup_footer(root)
 
 # GUI 루프 시작

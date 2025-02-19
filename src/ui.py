@@ -99,6 +99,18 @@ def setup_time_label(root):
     time_label.grid(row=11, column=0, columnspan=4, pady=10)
     return time_label
 
+def setup_server_time_test_button(root, test_function):
+    """서버 시간 테스트 버튼을 생성하고 그리드에 배치하는 함수"""
+    test_button = ttk.Button(root, text="현재 서버 시간 ▶", command=test_function, width=15)
+    test_button.grid(row=12, column=0, pady=10)
+    return test_button
+
+def setup_test_result_label(root):
+    """서버 시간 테스트 결과를 표시하는 레이블 생성 함수"""
+    test_result_label = ttk.Label(root, text="", font=(FONT_NAME, 24))
+    test_result_label.grid(row=12, column=1, columnspan=3, pady=10)
+    return test_result_label
+
 def open_link(event):
     webbrowser.open_new("https://github.com/j30ngwoo")
 
@@ -111,7 +123,7 @@ def on_leave(event):
 def setup_footer(root):
     """하단에 클릭 가능한 푸터 레이블을 설정하는 함수"""
     footer_label = ttk.Label(root, text="by J30ngwoo", font=(FONT_NAME, 10, "bold"), anchor="e", foreground="#4682B4", cursor="hand2")
-    footer_label.grid(row=12, column=2, sticky="e")
+    footer_label.grid(row=13, column=2, sticky="e")
 
     # 레이블 클릭 시 링크 열기
     footer_label.bind("<Button-1>", open_link)
