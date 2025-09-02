@@ -1,21 +1,17 @@
-name: Build & Release (Windows + macOS)
+name: Release (Windows + macOS)
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch: {}
 
 permissions:
-  contents: write   # 릴리즈 생성/업데이트에 필요
+  contents: write
 
 jobs:
-  build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-
+  build-windows:
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -25,26 +21,107 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install deps (if any)
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        shell: bash
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
-      - name: Install PyInstaller (latest)
+      - name: Install dependencies (optional)
+        shell: pwsh
+        run: |
+          if (Test-Path requirements.txt) { pip install -r requirements.txt }
+
+      - name: Install PyInstaller
         run: pip install pyinstaller
-        shell: bash
 
-      - name: Build with PyInstaller
-        run: |
-          pyinstaller main.py --onefile --noconsole
-        shell: bash
+      - name: Build (PyInstaller)
+        shell: pwsh
+        run: >
+          pyinstaller src/main.py --onefile --noconsole
+          --name "${{ github.event.repository.name }}"
+          --distpath out --workpath build --specpath build
 
-      - name: Rename artifacts
+      - name: Rename artifact
+        shell: pwsh
+        run: >
+          ren out\${{ github.event.repository.name }}.exe
+          ${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifact
+          path: out\*.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install dependencies (optional)
         run: |
-          mkdir -p out
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            mv dist/*.exe "out/${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe"
-          else
-            # macOS: 실행 파일 (단일 바이너리). .app 번들 원하면 py2app 사용(아래 안내).
-            mv dist/* "out/${{ github.event.repository.name }}-${{ github.ref_name }}-macos"
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Build (PyInstaller)
+        run: >
+          pyinstaller src/main.py --onefile --noconsole
+          --name "${{ github.event.repository.name }}"
+          --distpath out --workpath build --specpath build
+
+      # 초보 사용자 배려: 실행파일을 zip으로 감싸서 배포
+      - name: Zip & rename artifact
+        run: |
+          NAME="${{ github.event.repository.name }}"
+          TAG="${{ github.ref_name }}"
+          mv "out/${NAME}" "out/${NAME}-${TAG}-macos"
+          (cd out && zip -r "${NAME}-${TAG}-macos.zip" "${NAME}-${TAG}-macos")
+          rm -rf "out/${NAME}-${TAG}-macos"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifact
+          path: out/*.zip
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-macos]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+          pattern: "*-artifact"
+
+      - name: Generate release notes
+        run: |
+          {
+            echo "Auto release for $GITHUB_REF_NAME"
+            echo
+            echo "Assets:"
+            ls -al dist || true
+            echo
+            echo "- Windows: *-windows.exe"
+            echo "- macOS:   *-macos.zip"
+          } > NOTES.md
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: NOTES.md
+          files: |
+            dist/*.exe
+            dist/*.zip
