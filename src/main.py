@@ -1,3 +1,5 @@
+import os, sys
+sys.path.insert(0, os.path.dirname(__file__))
 import tkinter as tk
 from tkinter import font
 import time
@@ -23,8 +25,6 @@ from ui import (
     setup_footer
 )
 
-import os, sys
-sys.path.insert(0, os.path.dirname(__file__))
 
 # SSL 경고 무시
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
