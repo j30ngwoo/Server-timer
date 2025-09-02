@@ -189,7 +189,7 @@ def server_time_test():
             url = "https://" + url
         try:
             server_time = get_server_time(url)
-            root.after(0, lambda: test_result_label.config(text=f"{time.strftime("%H:%M:%S", time.localtime(server_time))}.XXX", foreground="black"))
+            root.after(0, lambda: test_result_label.config(text=f"{time.strftime('%H:%M:%S', time.localtime(server_time))}.XXX", foreground="black"))
         except Exception as e:
             root.after(0, lambda: test_result_label.config(text=f"오류: {str(e)}", foreground="red"))
     threading.Thread(target=fetch_time).start()
