@@ -36,7 +36,7 @@ jobs:
         shell: pwsh
         run: >
           pyinstaller src/main.py --onefile --noconsole
-          --paths src \
+          --paths src
           --name "${{ github.event.repository.name }}"
           --distpath out --workpath build --specpath build
 
