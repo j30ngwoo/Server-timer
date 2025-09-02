@@ -37,6 +37,7 @@ jobs:
         run: >
           pyinstaller src/main.py --onefile --noconsole
           --paths src
+          --hidden-import sync --hidden-import ui --hidden-import constants
           --name "Server-timer"
           --distpath out --workpath build --specpath build --clean
 
@@ -76,8 +77,10 @@ jobs:
       - name: Build (PyInstaller)
         run: >
           pyinstaller src/main.py --onefile --noconsole
+          --paths src
+          --hidden-import sync --hidden-import ui --hidden-import constants
           --name "${{ github.event.repository.name }}"
-          --distpath out --workpath build --specpath build
+          --distpath out --workpath build --specpath build --clean
 
       # 초보 사용자 배려: 실행파일을 zip으로 감싸서 배포
       - name: Zip & rename artifact
