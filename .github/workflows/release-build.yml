@@ -35,8 +35,9 @@ jobs:
       - name: Build (PyInstaller)
         shell: pwsh
         run: >
-          pyinstaller -m src.main --onefile --noconsole
-          --name "${{ github.event.repository.name }}"
+          pyinstaller src/main.py --onefile --noconsole
+          --paths src
+          --name "Server-timer"
           --distpath out --workpath build --specpath build --clean
 
       - name: Rename artifact
