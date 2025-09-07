@@ -5,11 +5,10 @@ import requests
 import threading
 import urllib3
 import re
-
-from src.constants import servers, FONT_NAME
-from src.sync import synchronize_and_verify, get_server_time
+from constants import servers, FONT_NAME
+from sync import synchronize_and_verify, get_server_time
 from urllib.parse import urlparse
-from src.ui import (
+from ui import (
     initialize_main_window, 
     setup_server_url_label, 
     setup_server_buttons, 
@@ -217,3 +216,4 @@ footer_label = setup_footer(root)
 
 # GUI 루프 시작
 root.mainloop()
+
