@@ -1,20 +1,21 @@
+# This workflow builds and releases the Python application for Windows and macOS.
 name: Release (Windows + macOS)
 
 on:
   push:
     tags:
-      - "v*"
-  workflow_dispatch: {}
+      - "v*" # Trigger the workflow when a tag starting with 'v' is pushed
+  workflow_dispatch: {} # Allows manual triggering
 
 permissions:
-  contents: write
+  contents: write # Required to create a GitHub Release
 
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -24,7 +25,7 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      - name: Install dependencies (optional)
+      - name: Install dependencies
         shell: pwsh
         run: |
           if (Test-Path requirements.txt) { pip install -r requirements.txt }
@@ -32,32 +33,34 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      - name: Build (PyInstaller)
+      - name: Build with PyInstaller
         shell: pwsh
         run: >
           pyinstaller src/main.py --onefile --noconsole
           --paths src
           --hidden-import sync --hidden-import ui --hidden-import constants
-          --name "Server-timer"
+          --name "${{ github.event.repository.name }}"
           --distpath out --workpath build --specpath build --clean
 
-      - name: Rename artifact
+      # [수정 1] 빌드된 파일 이름을 태그와 OS를 포함하여 일관되게 변경합니다.
+      # PyInstaller의 --name 옵션과 통일하여 불필요한 rename 과정을 제거했습니다.
+      - name: Rename artifact for release
         shell: pwsh
-        run: >
-          ren out\${{ github.event.repository.name }}.exe
-          ${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe
+        run: |
+          $newName = "${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe"
+          Move-Item -Path "out/${{ github.event.repository.name }}.exe" -Destination "out/$newName"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifact
-          path: out\*.exe
+          path: out/*.exe
 
   build-macos:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -67,14 +70,14 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      - name: Install dependencies (optional)
+      - name: Install dependencies
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      - name: Build (PyInstaller)
+      - name: Build with PyInstaller
         run: >
           pyinstaller src/main.py --onefile --noconsole
           --paths src
@@ -82,13 +85,16 @@ jobs:
           --name "${{ github.event.repository.name }}"
           --distpath out --workpath build --specpath build --clean
 
-      # 초보 사용자 배려: 실행파일을 zip으로 감싸서 배포
+      # macOS에서는 실행 파일을 zip으로 압축하여 권한 문제를 방지하고 배포를 용이하게 합니다.
       - name: Zip & rename artifact
         run: |
           NAME="${{ github.event.repository.name }}"
           TAG="${{ github.ref_name }}"
+          # 실행 파일 자체의 이름을 먼저 변경
           mv "out/${NAME}" "out/${NAME}-${TAG}-macos"
+          # zip 압축
           (cd out && zip -r "${NAME}-${TAG}-macos.zip" "${NAME}-${TAG}-macos")
+          # 원본 실행 파일 삭제
           rm -rf "out/${NAME}-${TAG}-macos"
 
       - name: Upload artifact
@@ -99,25 +105,25 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    needs: [build-windows, build-macos]
+    needs: [build-windows, build-macos] # Wait for both builds to complete
     steps:
-      - name: Download artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
-          merge-multiple: true
+          merge-multiple: true # Merge artifacts from different jobs into one directory
           pattern: "*-artifact"
 
       - name: Generate release notes
         run: |
           {
-            echo "Auto release for $GITHUB_REF_NAME"
-            echo
-            echo "Assets:"
-            ls -al dist || true
-            echo
-            echo "- Windows: *-windows.exe"
-            echo "- macOS:   *-macos.zip"
+            echo "## Release Notes for ${{ github.ref_name }}"
+            echo ""
+            echo "This is an automated release. See below for downloadable assets."
+            echo ""
+            echo "### Assets"
+            echo "A list of files included in this release:"
+            ls -l dist
           } > NOTES.md
 
       - name: Publish GitHub Release
