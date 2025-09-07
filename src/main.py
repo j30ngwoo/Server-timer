@@ -6,7 +6,7 @@ import threading
 import urllib3
 import re
 from constants import servers, FONT_NAME
-from sync import synchronize_and_verify, get_server_time
+from app_sync import synchronize_and_verify, get_server_time
 from urllib.parse import urlparse
 from ui import (
     initialize_main_window, 

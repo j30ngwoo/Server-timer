@@ -39,9 +39,6 @@ jobs:
         run: |
           pyinstaller main.py --onefile --noconsole `
             --paths . `
-            --hidden-import sync `
-            --hidden-import ui `
-            --hidden-import constants `
             --name "${{ github.event.repository.name }}" `
             --distpath ../out --workpath ../build --specpath ../build --clean
 
@@ -83,9 +80,6 @@ jobs:
         run: |
           pyinstaller main.py --onefile --noconsole \
             --paths . \
-            --hidden-import sync \
-            --hidden-import ui \
-            --hidden-import constants \
             --name "${{ github.event.repository.name }}" \
             --distpath ../out --workpath ../build --specpath ../build --clean
 
