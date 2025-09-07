@@ -33,29 +33,26 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      # [수정 3] src 폴더로 이동한 후 PyInstaller를 실행하여 경로 문제를 근본적으로 해결합니다.
+      # [최종 수정] 프로젝트 루트를 PYTHONPATH에 추가하여 모든 로컬 모듈을 인식시킵니다.
       - name: Build with PyInstaller
         shell: pwsh
         run: |
-          cd src
-          pyinstaller main.py --onefile --noconsole `
-          --hidden-import sync --hidden-import ui --hidden-import constants `
+          $env:PYTHONPATH = "."
+          pyinstaller src/main.py --onefile --noconsole `
           --name "${{ github.event.repository.name }}" `
-          --distpath out --workpath ../build --specpath ../build --clean
+          --distpath out --workpath build --specpath build --clean
 
-      # [수정 3-1] 작업 디렉토리가 변경되었으므로 결과물 경로를 src/out으로 수정합니다.
       - name: Rename artifact for release
         shell: pwsh
         run: |
           $newName = "${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe"
-          Move-Item -Path "src/out/${{ github.event.repository.name }}.exe" -Destination "src/out/$newName"
+          Move-Item -Path "out/${{ github.event.repository.name }}.exe" -Destination "out/$newName"
 
-      # [수정 3-2] 업로드할 아티팩트 경로를 src/out으로 수정합니다.
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifact
-          path: src/out/*.exe
+          path: out/*.exe
 
   build-macos:
     runs-on: macos-latest
@@ -78,42 +75,37 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      # [수정 3] src 폴더로 이동한 후 PyInstaller를 실행하여 경로 문제를 근본적으로 해결합니다.
+      # [최종 수정] 프로젝트 루트를 PYTHONPATH에 추가하여 모든 로컬 모듈을 인식시킵니다.
       - name: Build with PyInstaller
         run: |
-          cd src && pyinstaller main.py --onefile --noconsole \
-          --hidden-import sync --hidden-import ui --hidden-import constants \
+          export PYTHONPATH=.
+          pyinstaller src/main.py --onefile --noconsole \
           --name "${{ github.event.repository.name }}" \
-          --distpath out --workpath ../build --specpath ../build --clean
+          --distpath out --workpath build --specpath build --clean
 
-      # [수정 3-1] 작업 디렉토리가 변경되었으므로 결과물 경로를 src/out으로 수정합니다.
       - name: Zip & rename artifact
         run: |
           NAME="${{ github.event.repository.name }}"
           TAG="${{ github.ref_name }}"
-          # 실행 파일 자체의 이름을 먼저 변경
-          mv "src/out/${NAME}" "src/out/${NAME}-${TAG}-macos"
-          # zip 압축
-          (cd src/out && zip -r "${NAME}-${TAG}-macos.zip" "${NAME}-${TAG}-macos")
-          # 원본 실행 파일 삭제
-          rm -rf "src/out/${NAME}-${TAG}-macos"
+          mv "out/${NAME}" "out/${NAME}-${TAG}-macos"
+          (cd out && zip -r "${NAME}-${TAG}-macos.zip" "${NAME}-${TAG}-macos")
+          rm -rf "out/${NAME}-${TAG}-macos"
 
-      # [수정 3-2] 업로드할 아티팩트 경로를 src/out으로 수정합니다.
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-artifact
-          path: src/out/*.zip
+          path: out/*.zip
 
   release:
     runs-on: ubuntu-latest
-    needs: [build-windows, build-macos] # Wait for both builds to complete
+    needs: [build-windows, build-macos]
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
-          merge-multiple: true # Merge artifacts from different jobs into one directory
+          merge-multiple: true
           pattern: "*-artifact"
 
       - name: Generate release notes
