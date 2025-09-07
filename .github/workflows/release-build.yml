@@ -1,14 +1,14 @@
-# This workflow builds and releases the Python application for Windows and macOS.
+# .github/workflows/release-build.yml
 name: Release (Windows + macOS)
 
 on:
   push:
     tags:
-      - "v*" # Trigger the workflow when a tag starting with 'v' is pushed
-  workflow_dispatch: {} # Allows manual triggering
+      - "v*"
+  workflow_dispatch: {}
 
 permissions:
-  contents: write # Required to create a GitHub Release
+  contents: write
 
 jobs:
   build-windows:
@@ -33,34 +33,23 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      - name: Build with PyInstaller (diagnostic)
+      - name: Build with PyInstaller
+        shell: pwsh
         working-directory: src
         run: |
           pyinstaller main.py --onefile --noconsole `
             --paths . `
-            --hidden-import app_sync --hidden-import ui --hidden-import constants `
-            --log-level DEBUG `
+            --hidden-import app_sync `
+            --hidden-import ui `
+            --hidden-import constants `
             --name "${{ github.event.repository.name }}" `
             --distpath ../out --workpath ../build --specpath ../build --clean
 
-      - name: Show PyInstaller warnings and tree (Windows)
-        if: runner.os == 'Windows'
+      - name: Rename artifact for release
         shell: pwsh
         run: |
-          Get-ChildItem -Recurse build | Where-Object { $_.Name -match '^warn-.*\.txt$' -or $_.Name -eq 'xref-Server-timer.html' } | ForEach-Object { Write-Host "=== $_"; Get-Content $_ }
-
-      - name: Upload PyInstaller build dir (diagnostic)
-        uses: actions/upload-artifact@v4
-        with:
-          name: pyinstaller-diagnostics
-          path: |
-            build/**
-            out/**
-            - name: Rename artifact for release
-              shell: pwsh
-              run: |
-                $newName = "${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe"
-                Move-Item -Path "out/${{ github.event.repository.name }}.exe" -Destination "out/$newName"
+          $newName = "${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe"
+          Move-Item -Path "out/${{ github.event.repository.name }}.exe" -Destination "out/$newName"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -146,4 +135,3 @@ jobs:
           files: |
             dist/*.exe
             dist/*.zip
-
