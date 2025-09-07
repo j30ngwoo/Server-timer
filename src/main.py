@@ -1,5 +1,3 @@
-import os, sys
-sys.path.insert(0, os.path.dirname(__file__))
 import tkinter as tk
 from tkinter import font
 import time
@@ -7,10 +5,11 @@ import requests
 import threading
 import urllib3
 import re
-from constants import servers, FONT_NAME
-from sync import synchronize_and_verify, get_server_time
+
+from src.constants import servers, FONT_NAME
+from src.sync import synchronize_and_verify, get_server_time
 from urllib.parse import urlparse
-from ui import (
+from src.ui import (
     initialize_main_window, 
     setup_server_url_label, 
     setup_server_buttons, 
@@ -218,4 +217,3 @@ footer_label = setup_footer(root)
 
 # GUI 루프 시작
 root.mainloop()
-

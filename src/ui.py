@@ -1,7 +1,8 @@
 import webbrowser
 import tkinter as tk
 from tkinter import ttk
-from constants import (
+
+from src.constants import (
     SYNC_ATTEMPTS,
     MAX_DELAY,
     MIN_DELAY,
