@@ -36,11 +36,11 @@ jobs:
       - name: Build with PyInstaller (diagnostic)
         working-directory: src
         run: |
-          pyinstaller main.py --onefile --noconsole \
-            --paths . \
-            --hidden-import app_sync --hidden-import ui --hidden-import constants \
-            --log-level DEBUG \
-            --name "${{ github.event.repository.name }}" \
+          pyinstaller main.py --onefile --noconsole `
+            --paths . `
+            --hidden-import app_sync --hidden-import ui --hidden-import constants `
+            --log-level DEBUG `
+            --name "${{ github.event.repository.name }}" `
             --distpath ../out --workpath ../build --specpath ../build --clean
 
       - name: Show PyInstaller warnings and tree (Windows)
