@@ -33,12 +33,12 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      # [최종 수정] 프로젝트 루트를 PYTHONPATH에 추가하여 모든 로컬 모듈을 인식시킵니다.
+      # [최종 수정] PYTHONPATH 대신 --paths 옵션으로 프로젝트 루트를 명시합니다.
       - name: Build with PyInstaller
         shell: pwsh
         run: |
-          $env:PYTHONPATH = "."
           pyinstaller src/main.py --onefile --noconsole `
+          --paths . `
           --name "${{ github.event.repository.name }}" `
           --distpath out --workpath build --specpath build --clean
 
@@ -75,11 +75,11 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      # [최종 수정] 프로젝트 루트를 PYTHONPATH에 추가하여 모든 로컬 모듈을 인식시킵니다.
+      # [최종 수정] PYTHONPATH 대신 --paths 옵션으로 프로젝트 루트를 명시합니다.
       - name: Build with PyInstaller
         run: |
-          export PYTHONPATH=.
           pyinstaller src/main.py --onefile --noconsole \
+          --paths . \
           --name "${{ github.event.repository.name }}" \
           --distpath out --workpath build --specpath build --clean
 
