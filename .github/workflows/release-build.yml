@@ -33,20 +33,34 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      - name: Build with PyInstaller
-        shell: pwsh
+      - name: Build with PyInstaller (diagnostic)
         working-directory: src
         run: |
-          pyinstaller main.py --onefile --noconsole `
-            --paths . `
-            --name "${{ github.event.repository.name }}" `
+          pyinstaller main.py --onefile --noconsole \
+            --paths . \
+            --hidden-import app_sync --hidden-import ui --hidden-import constants \
+            --log-level DEBUG \
+            --name "${{ github.event.repository.name }}" \
             --distpath ../out --workpath ../build --specpath ../build --clean
 
-      - name: Rename artifact for release
+      - name: Show PyInstaller warnings and tree (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $newName = "${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe"
-          Move-Item -Path "out/${{ github.event.repository.name }}.exe" -Destination "out/$newName"
+          Get-ChildItem -Recurse build | Where-Object { $_.Name -match '^warn-.*\.txt$' -or $_.Name -eq 'xref-Server-timer.html' } | ForEach-Object { Write-Host "=== $_"; Get-Content $_ }
+
+      - name: Upload PyInstaller build dir (diagnostic)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyinstaller-diagnostics
+          path: |
+            build/**
+            out/**
+            - name: Rename artifact for release
+              shell: pwsh
+              run: |
+                $newName = "${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe"
+                Move-Item -Path "out/${{ github.event.repository.name }}.exe" -Destination "out/$newName"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -80,6 +94,9 @@ jobs:
         run: |
           pyinstaller main.py --onefile --noconsole \
             --paths . \
+            --hidden-import app_sync \
+            --hidden-import ui \
+            --hidden-import constants \
             --name "${{ github.event.repository.name }}" \
             --distpath ../out --workpath ../build --specpath ../build --clean
 
