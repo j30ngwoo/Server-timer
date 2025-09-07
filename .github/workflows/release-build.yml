@@ -48,7 +48,7 @@ jobs:
       - name: Rename artifact for release
         shell: pwsh
         run: |
-          $newName = "${{ github.event.repository.name }}-${{ github.ref_name }}-windows.exe"
+          $newName = "${{ github.event.repository.name }}-windows.exe"
           Move-Item -Path "out/${{ github.event.repository.name }}.exe" -Destination "out/$newName"
 
       - name: Upload artifact
@@ -92,10 +92,9 @@ jobs:
       - name: Zip & rename artifact
         run: |
           NAME="${{ github.event.repository.name }}"
-          TAG="${{ github.ref_name }}"
-          mv "out/${NAME}" "out/${NAME}-${TAG}-macos"
-          (cd out && zip -r "${NAME}-${TAG}-macos.zip" "${NAME}-${TAG}-macos")
-          rm -rf "out/${NAME}-${TAG}-macos"
+          mv "out/${NAME}" "out/${NAME}-macos"
+          (cd out && zip -r "${NAME}-macos.zip" "${NAME}-macos")
+          rm -rf "out/${NAME}-macos"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
