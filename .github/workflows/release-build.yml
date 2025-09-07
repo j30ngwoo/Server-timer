@@ -33,14 +33,15 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      # [최종 수정] PYTHONPATH 대신 --paths 옵션으로 프로젝트 루트를 명시합니다.
       - name: Build with PyInstaller
         shell: pwsh
+        working-directory: src
         run: |
-          pyinstaller src/main.py --onefile --noconsole `
-          --paths . `
-          --name "${{ github.event.repository.name }}" `
-          --distpath out --workpath build --specpath build --clean
+          pyinstaller main.py --onefile --noconsole `
+            --paths . `
+            --name "${{ github.event.repository.name }}" `
+            --distpath ../out --workpath ../build --specpath ../build --clean
+
 
       - name: Rename artifact for release
         shell: pwsh
@@ -75,13 +76,13 @@ jobs:
       - name: Install PyInstaller
         run: pip install pyinstaller
 
-      # [최종 수정] PYTHONPATH 대신 --paths 옵션으로 프로젝트 루트를 명시합니다.
       - name: Build with PyInstaller
+        working-directory: src
         run: |
-          pyinstaller src/main.py --onefile --noconsole \
-          --paths . \
-          --name "${{ github.event.repository.name }}" \
-          --distpath out --workpath build --specpath build --clean
+          pyinstaller main.py --onefile --noconsole \
+            --paths . \
+            --name "${{ github.event.repository.name }}" \
+            --distpath ../out --workpath ../build --specpath ../build --clean
 
       - name: Zip & rename artifact
         run: |
