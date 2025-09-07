@@ -39,9 +39,11 @@ jobs:
         run: |
           pyinstaller main.py --onefile --noconsole `
             --paths . `
+            --hidden-import sync `
+            --hidden-import ui `
+            --hidden-import constants `
             --name "${{ github.event.repository.name }}" `
             --distpath ../out --workpath ../build --specpath ../build --clean
-
 
       - name: Rename artifact for release
         shell: pwsh
@@ -81,6 +83,9 @@ jobs:
         run: |
           pyinstaller main.py --onefile --noconsole \
             --paths . \
+            --hidden-import sync \
+            --hidden-import ui \
+            --hidden-import constants \
             --name "${{ github.event.repository.name }}" \
             --distpath ../out --workpath ../build --specpath ../build --clean
 
