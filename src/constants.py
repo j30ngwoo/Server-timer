@@ -1,3 +1,5 @@
+import platform
+
 # 동기화 시도 횟수
 SYNC_ATTEMPTS = 25
 
@@ -12,7 +14,12 @@ VALIDATION_THRESHOLD = 0.1
 VALIDATION_ATTEMPTS = 1
 
 # UI
-FONT_NAME = "Helvetica"
+if platform.system() == "Windows":
+    FONT_NAME = "Segoe UI"
+elif platform.system() == "Darwin":  # macOS
+    FONT_NAME = "SF Pro Text"
+else:  # Linux나 기타
+    FONT_NAME = "Arial"
 
 servers = {
     "건국": "https://sugang.konkuk.ac.kr/",
